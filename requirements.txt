@@ -1,0 +1,5 @@
+argparse
+confluent-kafka
+hop-client
+adc
+boto3

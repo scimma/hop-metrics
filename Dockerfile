@@ -1,20 +1,7 @@
-# Use an official Python runtime as a parent image
-FROM python:3.10-slim
+FROM scimma/python-service-base:latest
+ADD requirements.txt /root/requirements.txt
+RUN python3.9 -m pip install -r /root/requirements.txt
 
-# Set the working directory in the container
-WORKDIR /usr/src/app
+ADD metrics_getOffsets.py /root/metrics_getOffsets.py
 
-# Copy the current directory contents into the container at /usr/src/app
-COPY . .
-
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Make port 80 available to the world outside this container
-EXPOSE 80
-
-# Define environment variable
-ENV NAME KafkaQueryScript
-
-# Run your script when the container launches
-CMD ["python", "./metrics.py"]
+ENTRYPOINT ["python3.9", "/root/metrics_getOffsets.py"]

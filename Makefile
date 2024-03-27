@@ -15,7 +15,7 @@ CNT_LTST := $(CNT_NAME):latest
 all: container
 
 container: Dockerfile
-	docker build --platform linux/arm64 -f $< -t $(CNT_IMG) .
+	docker build -f $< -t $(CNT_IMG) .
 	docker tag $(CNT_IMG) $(CNT_LTST)
 
 set-release-tags:

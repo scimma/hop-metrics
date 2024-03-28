@@ -8,7 +8,7 @@ The `hop-metrics` script is scheduled to run once per day and collects informati
 
 ## Usage
 
-`hop-metrics` is set up to run via a cron job, executing automatically once every day (`0 0 * * *`). While the script operates autonomously, users looking to customize its schedule or behavior can do so by modifying the cron job settings.
+`hop-metrics` is set up to run via a cron job, executing automatically once every day (`0 0 * * *`).
 
 ## License
 

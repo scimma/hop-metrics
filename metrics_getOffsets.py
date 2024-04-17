@@ -106,9 +106,9 @@ for t in meta.topics:
                 "topic": t,
                 "partition": str(p)
             },
-            "time": time,
+            "recording_time": time,
             "fields": {
-                "offset": max_off
+                "daily_max_offset": max_off
             }
         })
         print(f"Recorded offset for {group}, {t}, partition {p}: {max_off}, on date: {time}")

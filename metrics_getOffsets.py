@@ -52,10 +52,15 @@ parser.add_argument("--influxdb-secret-name", help="Name for the secret InfluxDB
 parser.add_argument("--aws-region", help="Name for the AWS region", type=str,
                     default=os.environ.get('AWS_REGION', "us-west-2"))
 
+parser.add_argument("--data-source", help="Discriminate if data comes from Dev or Prod server", type=str,
+                    default=os.environ.get('DATA_SOURCE', ""))
+
+
 args = parser.parse_args()
 url = args.kafka_url
 kafka_user, kafka_password = parse_kafka_secrets(get_AWS_secrets(args.kafka_secret_name, args.aws_region))
 _, broker_addresses, _ = adc.kafka.parse_kafka_url(url)
+data_source = args.data_source
 
 
 # InfluxDB configuration
@@ -104,7 +109,8 @@ for t in meta.topics:
             "tags": {
                 "group": group,
                 "topic": t,
-                "partition": str(p)
+                "partition": str(p),
+                "data_source": data_source
             },
             "recording_time": time,
             "fields": {

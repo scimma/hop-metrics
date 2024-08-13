@@ -29,8 +29,13 @@ def get_AWS_secrets(secret_name, region_name):
 
 
 def parse_kafka_secrets(kafka_secrets_str):
-    secrets_dict = {key: value.strip('"') for key, value in
-                        (pair.split('=') for pair in kafka_secrets_str['SecretString'].split(' '))}
+    secrets_dict = {
+        key: value.strip('"')
+        for key, value in (
+            pair.split('=')
+            for pair in kafka_secrets_str['SecretString'].split(' ')
+        )
+    }
     return (secrets_dict['username'], secrets_dict['password'])
 
 
@@ -40,31 +45,46 @@ def parse_influx_secrets(influx_secrets_str):
 
 # HANDLE TERMINAL ARGUMENTS AND SET USERS AND PASSWORDS
 parser = argparse.ArgumentParser()
-parser.add_argument("--kafka-url", help="URL for connecting to kafka", type=str,
-                    default=os.environ.get('KAFKA_URL', "kafka://kafka.scimma.org"))
+parser.add_argument("--kafka-url",
+                    help="URL for connecting to kafka",
+                    type=str,
+                    default=os.environ.get('KAFKA_URL',
+                                           "kafka://kafka.scimma.org"))
 
-parser.add_argument("--kafka-secret-name", help="Name for the secret Kafka credentials", type=str,
-                    default=os.environ.get('KAFKA_SECRET', "prod-kafka-admin-credential"))
+parser.add_argument("--kafka-secret-name",
+                    help="Name for the secret Kafka credentials",
+                    type=str,
+                    default=os.environ.get('KAFKA_SECRET',
+                                           "prod-kafka-admin-credential"))
 
-parser.add_argument("--influxdb-secret-name", help="Name for the secret InfluxDB credentials", type=str,
-                    default=os.environ.get('INFLUXDB_SECRET', "hop-metrics-influxDB"))
+parser.add_argument("--influxdb-secret-name",
+                    help="Name for the secret InfluxDB credentials",
+                    type=str,
+                    default=os.environ.get('INFLUXDB_SECRET',
+                                           "hop-metrics-influxDB"))
 
 parser.add_argument("--aws-region", help="Name for the AWS region", type=str,
                     default=os.environ.get('AWS_REGION', "us-west-2"))
 
-parser.add_argument("--data-source", help="Discriminate if data comes from Dev or Prod server", type=str,
+parser.add_argument("--data-source",
+                    help="Discriminate if data comes from Dev or Prod server",
+                    type=str,
                     default=os.environ.get('DATA_SOURCE', ""))
 
 
 args = parser.parse_args()
 url = args.kafka_url
-kafka_user, kafka_password = parse_kafka_secrets(get_AWS_secrets(args.kafka_secret_name, args.aws_region))
+kafka_user, kafka_password = parse_kafka_secrets(
+    get_AWS_secrets(args.kafka_secret_name, args.aws_region)
+)
 _, broker_addresses, _ = adc.kafka.parse_kafka_url(url)
 data_source = args.data_source
 
 
 # InfluxDB configuration
-influx_secrets = parse_influx_secrets(get_AWS_secrets(args.influxdb_secret_name, args.aws_region))
+influx_secrets = parse_influx_secrets(
+    get_AWS_secrets(args.influxdb_secret_name, args.aws_region)
+)
 influx_host = influx_secrets['host']
 influx_port = influx_secrets['port']
 influx_user = influx_secrets['username']
@@ -73,8 +93,12 @@ influxdb = 'hop_groups_metrics'
 
 
 # AUTHENTICATE AND CREATE A CONSUMER
-auth = hop.auth.Auth(user=kafka_user, password=kafka_password, method=adc.auth.SASLMethod.PLAIN)
-conf = adc.consumer.ConsumerConfig(group_id="", broker_urls=broker_addresses, auth=auth)
+auth = hop.auth.Auth(user=kafka_user,
+                     password=kafka_password,
+                     method=adc.auth.SASLMethod.PLAIN)
+conf = adc.consumer.ConsumerConfig(group_id="",
+                                   broker_urls=broker_addresses,
+                                   auth=auth)
 c = adc.consumer.Consumer(conf)._consumer
 
 
@@ -86,19 +110,21 @@ influxdb_client = InfluxDBClient(host=influx_host,
                                  database=influxdb)
 
 
-#GET THE OFFSETS
+# GET THE OFFSETS
 meta = c.list_topics()
 points = []
 
 for t in meta.topics:
     if t == "__consumer_offsets":
         continue
-    
+
     group = t.split('.')[0]
-    
+
     for p in meta.topics[t].partitions:
         # Getting latest offswet for each partition
-        tp_max = confluent_kafka.TopicPartition(t, p, offset=confluent_kafka.OFFSET_END)
+        tp_max = confluent_kafka.TopicPartition(
+            t, p, offset=confluent_kafka.OFFSET_END
+        )
         max_result = c.offsets_for_times([tp_max])
         max_off = max_result.pop(0).offset
         time = datetime.datetime.now().isoformat()
@@ -107,17 +133,22 @@ for t in meta.topics:
         points.append({
             "measurement": "daily_kafka_offsets",
             "tags": {
-                "group": group,
-                "topic": t,
-                "partition": str(p),
-                "data_source": data_source
+                "data_source": data_source,
+                "data_point_version": '2'
             },
             "recording_time": time,
             "fields": {
-                "daily_max_offset": max_off
+                "group": group,
+                "topic": t,
+                "partition": int(p),
+                "daily_max_offset": int(max_off)
             }
         })
-        print(f"Recorded offset for {group}, {t}, partition {p}: {max_off}, on date: {time}")
+
+        print(
+            f"Recorded offset for {group}, {t}, partition {p}: {max_off}, "
+            f"on date: {time}"
+        )
 
     influxdb_client.write_points(points)
 

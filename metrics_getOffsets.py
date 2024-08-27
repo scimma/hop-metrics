@@ -134,14 +134,15 @@ for t in meta.topics:
             "measurement": "daily_kafka_offsets",
             "tags": {
                 "data_source": data_source,
-                "data_point_version": '2'
+                "data_point_version": '2',
+                "id": str(t)+'-'+str(p)
             },
-            "recording_time": time,
+            "time": time,
             "fields": {
                 "group": group,
                 "topic": t,
-                "partition": int(p),
-                "daily_max_offset": int(max_off)
+                "partition": p,
+                "daily_max_offset": max_off
             }
         })
 
@@ -150,7 +151,7 @@ for t in meta.topics:
             f"on date: {time}"
         )
 
-    influxdb_client.write_points(points)
+influxdb_client.write_points(points)
 
 influxdb_client.close()
 c.close()

@@ -4,7 +4,7 @@ import hop
 import adc
 import boto3
 from influxdb import InfluxDBClient
-import datetime
+from datetime import timezone, datetime as dt
 import json
 import os
 
@@ -127,7 +127,7 @@ for t in meta.topics:
         )
         max_result = c.offsets_for_times([tp_max])
         max_off = max_result.pop(0).offset
-        time = datetime.datetime.now().isoformat()
+        time = dt.now(timezone.utc).isoformat()
 
         # Storing the offset using an InfluxDB data point
         points.append({
@@ -135,7 +135,7 @@ for t in meta.topics:
             "tags": {
                 "data_source": data_source,
                 "data_point_version": '2',
-                "id": str(t)+'-'+str(p)
+                "id": f"{str(t)}-{str(p)}"
             },
             "time": time,
             "fields": {
